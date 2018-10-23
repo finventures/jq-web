@@ -4,3 +4,5 @@ browserify-cache.json
 *.swo
 *.swp
 jq.*
+!jq.wasm.min.js
+!jq.wasm.wasm

@@ -43,16 +43,45 @@ function json(json, filter) {
   var result = raw(jsonstring, filter, ["-c"]).trim();
 
   if (result.indexOf("\n") !== -1) {
-    return result
-      .split("\n")
-      .filter(function(x) {
-        return x;
-      })
-      .reduce(function(acc, line) {
-        return acc.concat(JSON.parse(line));
-      }, []);
+    return (
+      result
+        .split("\n")
+        // Filter any results that are empty in string form
+        .filter(function(line) {
+          return line;
+        })
+        // Parse each line to json
+        .map(function(line) {
+          return parseResult(line, "multi");
+        })
+        // Filter any results that returned null from parseResult
+        .filter(function(json) {
+          return json;
+        })
+        // Merge each json line into an array
+        .reduce(function(acc, json) {
+          return acc.concat(json);
+        }, [])
+    );
   } else {
-    return JSON.parse(result);
+    return parseResult(result, "single");
+  }
+}
+
+function parseResult(jsonString, type) {
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    var errorMsg = "JQ library error: " + e.message;
+    window.Rollbar &&
+      window.Rollbar.error(errorMsg, {
+        json: json,
+        filter: filter,
+        jqResultString: jsonString,
+        stacktrace: e.stacktrace,
+        type: type
+      });
+    return null;
   }
 }
 
