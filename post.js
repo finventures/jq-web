@@ -8,6 +8,11 @@ function raw(jsonstring, filter, flags) {
     return "{}";
   }
 
+  // Open stdin, stdout, and stderr if they aren't already open
+  if (!FS.streams[0]) FS.streams[0] = FS.open("/dev/stdin", "r");
+  if (!FS.streams[1]) FS.streams[1] = FS.open("/dev/stdout", "w");
+  if (!FS.streams[2]) FS.streams[2] = FS.open("/dev/stderr", "w");
+
   stdin = jsonstring;
   inBuffer = [];
   outBuffer = [];
@@ -16,9 +21,13 @@ function raw(jsonstring, filter, flags) {
   flags = flags || [];
   Module.callMain(flags.concat(filter));
 
-  // calling main closes stdout, so we reopen it here:
-  FS.streams[1] = FS.open("/dev/stdout", 577, 0);
-  FS.streams[2] = FS.open("/dev/stderr", 577, 0);
+  // Close all open streams (stdin and stderr)
+  // Note: callMain closes stdout on its own
+  FS.streams.forEach(function(stream) {
+    if (stream) {
+      FS.close(stream);
+    }
+  });
 
   if (outBuffer.length) {
     return fromByteArray(outBuffer).trim();
